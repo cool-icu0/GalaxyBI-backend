@@ -8,6 +8,6 @@ import com.cool.galaxybi.model.entity.Chart;
 * @description 针对表【chart(图表信息表)】的数据库操作Service
 * @createDate 2024-09-08 03:07:32
 */
-public interface ChartService {
+public interface ChartService extends IService<Chart> {
 
 }
