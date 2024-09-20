@@ -101,3 +101,10 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - com.cool.galaxybi.controller
+## 讯飞 AI 配置
+xun-fei:
+  client:
+    appId: a598c4b1
+    apiSecret: N2NhNWZhYTk3NDQ0ZmI3M2RlZGRmYzky
+    apiKey: 8ac30eeac14c96b8f1da8e9c359fc1c5
+
