@@ -11,6 +11,11 @@ import java.io.Serializable;
 public class ChartEditRequest implements Serializable {
 
     /**
+     * 图标名称
+     */
+    private String chartName;
+
+    /**
      * id
      */
     private Long id;
