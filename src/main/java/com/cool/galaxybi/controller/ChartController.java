@@ -1,5 +1,6 @@
 package com.cool.galaxybi.controller;
 
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -24,6 +25,7 @@ import com.cool.galaxybi.service.ChartService;
 import com.cool.galaxybi.service.UserService;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
@@ -268,8 +270,24 @@ public class ChartController {
         ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
         // 如果名称不为空，并且名称长度大于100，就抛出异常，并给出提示
         ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
+        /**
+         * 检验文件
+         */
+        long size=multipartFile.getSize();
+        String originalFilename = multipartFile.getOriginalFilename();
+        final long ONE_MB = 1024 / 1024L;
+        ThrowUtils.throwIf(size > ONE_MB, ErrorCode.PARAMS_ERROR, "文件超过1MB");
+
+        /**
+         * 检验文件后缀
+         */
+        String suffix = FileUtil.getSuffix(originalFilename);
+        final List<String> validFileSuffixList = Arrays.asList("xlsx", "xls");
+        ThrowUtils.throwIf(!validFileSuffixList.contains(suffix), ErrorCode.PARAMS_ERROR, "不支持该类型文件");
+
         // 通过response对象拿到用户id(必须登录才能使用)
         User loginUser = userService.getLoginUser(request);
+
 
         // 用户输入
         StringBuilder userInput = new StringBuilder();
