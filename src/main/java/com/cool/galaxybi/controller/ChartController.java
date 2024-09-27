@@ -15,6 +15,7 @@ import com.cool.galaxybi.common.DeleteRequest;
 import com.cool.galaxybi.common.ErrorCode;
 import com.cool.galaxybi.common.ResultUtils;
 import com.cool.galaxybi.manager.AI2Manager;
+import com.cool.galaxybi.manager.RedisLimiterManager;
 import com.cool.galaxybi.model.dto.chart.*;
 import com.cool.galaxybi.model.dto.file.UploadFileRequest;
 import com.cool.galaxybi.model.entity.Chart;
@@ -56,6 +57,8 @@ public class ChartController {
     private UserService userService;
     @Resource
     private AI2Manager ai2Manager;
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
 
     private final static Gson GSON = new Gson();
 
@@ -287,6 +290,9 @@ public class ChartController {
 
         // 通过response对象拿到用户id(必须登录才能使用)
         User loginUser = userService.getLoginUser(request);
+
+        //限流判断
+        redisLimiterManager.doRateLimit("genChartByAi_" + loginUser.getId());
 
 
         // 用户输入
