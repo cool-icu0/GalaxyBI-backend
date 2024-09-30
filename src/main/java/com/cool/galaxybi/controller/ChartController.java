@@ -348,8 +348,9 @@ public class ChartController {
          * 检验文件
          */
         long size=multipartFile.getSize();
+        System.out.println("文件大小"+size);
         String originalFilename = multipartFile.getOriginalFilename();
-        final long ONE_MB = 1024 / 1024L;
+        final long ONE_MB = 1024 * 1024L;
         ThrowUtils.throwIf(size > ONE_MB, ErrorCode.PARAMS_ERROR, "文件超过1MB");
 
         /**
