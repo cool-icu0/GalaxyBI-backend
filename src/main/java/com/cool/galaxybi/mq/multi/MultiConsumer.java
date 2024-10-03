@@ -1,4 +1,4 @@
-package com.cool.galaxybi.mq;
+package com.cool.galaxybi.mq.multi;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
