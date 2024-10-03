@@ -3,6 +3,7 @@ package com.cool.galaxybi.controller;
 import cn.hutool.core.io.FileUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cool.galaxybi.bizmq.BiMessageProducer;
 import com.cool.galaxybi.constant.CommonConstant;
 import com.cool.galaxybi.constant.UserConstant;
 import com.cool.galaxybi.exception.BusinessException;
@@ -59,7 +60,9 @@ public class ChartController {
     @Resource
     private ThreadPoolExecutor threadPoolExecutor;
 
-    private final static Gson GSON = new Gson();
+    @Resource
+    private BiMessageProducer biMessageProducer;
+
 
     // region 增删改查
 
@@ -443,6 +446,89 @@ public class ChartController {
         if (!updateResult) {
             log.error("更新图表失败"+ chartId+","+execMessage);
         }
+    }
+
+
+    /**
+     * 智能分析(异步消息队列)
+     *
+     * @param multipartFile
+     * @param genChartByAiRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/gen/async/mq")
+    public BaseResponse<BiResponse> genChartByAiAsyncMq(@RequestPart("file") MultipartFile multipartFile,
+                                                      GenChartByAIRequest genChartByAiRequest, HttpServletRequest request) {
+        String name = genChartByAiRequest.getChartName();
+        String goal = genChartByAiRequest.getGoal();
+        String chartType = genChartByAiRequest.getChartType();
+
+        // 校验
+        // 如果分析目标为空，就抛出请求参数错误异常，并给出提示
+        ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
+        // 如果名称不为空，并且名称长度大于100，就抛出异常，并给出提示
+        ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
+        /**
+         * 检验文件
+         */
+        long size=multipartFile.getSize();
+        System.out.println("文件大小"+size);
+        String originalFilename = multipartFile.getOriginalFilename();
+        final long ONE_MB = 1024 * 1024L;
+        ThrowUtils.throwIf(size > ONE_MB, ErrorCode.PARAMS_ERROR, "文件超过1MB");
+
+        /**
+         * 检验文件后缀
+         */
+        String suffix = FileUtil.getSuffix(originalFilename);
+        final List<String> validFileSuffixList = Arrays.asList("xlsx", "xls");
+        ThrowUtils.throwIf(!validFileSuffixList.contains(suffix), ErrorCode.PARAMS_ERROR, "不支持该类型文件");
+
+        // 通过response对象拿到用户id(必须登录才能使用)
+        User loginUser = userService.getLoginUser(request);
+
+        //限流判断,每个用户一个限流器
+        redisLimiterManager.doRateLimit("genChartByAi_" + loginUser.getId());
+
+
+        // 用户输入
+        StringBuilder userInput = new StringBuilder();
+        userInput.append("你是一个数据分析师，接下来我会给你我的分析目标和原始数据，请告诉我分析结论。").append("\n");
+        userInput.append("分析目标：").append(goal).append("\n");
+
+        // 拼接分析目标
+        String userGoal = goal;
+        // 如果图表类型不为空
+        if (StringUtils.isNotBlank(chartType)) {
+            // 就将分析目标拼接上“请使用”+图表类型
+            userGoal += "，请使用" + chartType;
+        }
+        userInput.append(userGoal).append("\n");
+        userInput.append("原始数据：").append("\n");
+        // 压缩后的数据（把multipartFile传进来）
+        String csvData = ExcelUtils.excelToCsv(multipartFile);
+        userInput.append(csvData).append("\n");
+
+        //  先把图表保存到数据库中
+        Chart chart = new Chart();
+        chart.setChartName(name);
+        chart.setGoal(goal);
+        chart.setChartData(csvData);
+        chart.setChartType(chartType);
+        // 插入数据库时，还没生成结束，把生成结果都去掉
+        //设置任务状态为排队中
+        chart.setStatus("wait");
+        chart.setUserId(loginUser.getId());
+        boolean saveResult = chartService.save(chart);
+        ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
+
+        long newChartId = chart.getId();
+        //todo 消息队列
+        biMessageProducer.sendMessage(String.valueOf(newChartId));
+        BiResponse biResponse = new BiResponse();
+        biResponse.setChartId(newChartId);
+        return ResultUtils.success(biResponse);
     }
 
 

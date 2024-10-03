@@ -42,6 +42,13 @@ spring:
     multipart:
       # 大小限制
       max-file-size: 10MB
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
 server:
   address: 0.0.0.0
   port: 8101
@@ -103,7 +110,8 @@ knife4j:
 ## 讯飞 AI 配置
 xun-fei:
   client:
-    appId: a598c4b1
-    apiSecret: N2NhNWZhYTk3NDQ0ZmI3M2RlZGRmYzky
-    apiKey: 8ac30eeac14c96b8f1da8e9c359fc1c5
+    appId: XXXXXXXXXXXXXXXXXXX
+    apiSecret: XXXXXXXXXXXXXXXXXXX
+    apiKey: XXXXXXXXXXXXXXXXXXX
+
 
